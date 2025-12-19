@@ -18,6 +18,8 @@ const __dirname = path.resolve();
 
 app.use(express.json());
 app.use(cookieParser());
+app.set("trust proxy", 1); // trust first proxy
+
 app.use(
   cors({
     origin: "http://localhost:5173",
