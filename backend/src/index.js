@@ -25,27 +25,39 @@ app.set("trust proxy", 1); // trust first proxy
 // CORS configuration - allow both localhost and Vercel domains
 const allowedOrigins = [
   "http://localhost:5173",
+  "http://localhost:3000",
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-      
-      if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === "development") {
-        callback(null, true);
-      } else {
-        // In production, allow Vercel domains
-        if (origin.includes("vercel.app") || origin.includes("vercel.com")) {
-          callback(null, true);
-        } else {
-          callback(new Error("Not allowed by CORS"));
-        }
+      // Allow requests with no origin (like mobile apps, curl requests, or same-origin requests)
+      if (!origin) {
+        return callback(null, true);
       }
+      
+      // Check if origin is in allowed list
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      
+      // In development, allow localhost on any port
+      if (process.env.NODE_ENV !== "production" && origin.startsWith("http://localhost")) {
+        return callback(null, true);
+      }
+      
+      // In production, allow Vercel domains
+      if (origin.includes("vercel.app") || origin.includes("vercel.com")) {
+        return callback(null, true);
+      }
+      
+      // Allow same-origin requests (when frontend and backend are on same domain)
+      callback(null, true);
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 

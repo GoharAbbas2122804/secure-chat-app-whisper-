@@ -3,7 +3,19 @@ import { axiosInstance } from "../lib/axios.js";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 
-const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:5001" : "/";
+// Get backend URL for socket.io connection
+const getSocketURL = () => {
+  // In development, use localhost
+  if (import.meta.env.MODE === "development") {
+    return "http://localhost:5001";
+  }
+  
+  // In production, check for VITE_BACKEND_URL environment variable
+  // If not set, assume backend is on same domain
+  return import.meta.env.VITE_BACKEND_URL || "/";
+};
+
+const BASE_URL = getSocketURL();
 
 export const useAuthStore = create((set, get) => ({
   authUser: null,
@@ -22,8 +34,21 @@ export const useAuthStore = create((set, get) => ({
       get().connectSocket();
     } catch (error) {
       console.log("Error in checkAuth:", error);
-      set({ authUser: null });
+      // Only set authUser to null if it's not a network/CORS error
+      // Network errors are expected if backend is not accessible
+      if (error.response) {
+        // Server responded with error status
+        set({ authUser: null });
+      } else if (error.request) {
+        // Request was made but no response received (network error)
+        console.log("Network error - backend may not be accessible");
+        set({ authUser: null });
+      } else {
+        // Something else happened
+        set({ authUser: null });
+      }
     } finally {
+      // Always set checking to false, even on error
       set({ isCheckingAuth: false });
     }
   },

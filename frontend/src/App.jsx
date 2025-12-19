@@ -9,7 +9,7 @@ import ProfilePage from "./pages/ProfilePage";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "./store/useAuthStore";
 import { useThemeStore } from "./store/useThemeStore";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { Loader } from "lucide-react";
 import { Toaster } from "react-hot-toast";
@@ -17,19 +17,33 @@ import { Toaster } from "react-hot-toast";
 const App = () => {
   const { authUser, checkAuth, isCheckingAuth, onlineUsers } = useAuthStore();
   const { theme } = useThemeStore();
+  const [authTimeout, setAuthTimeout] = useState(false);
 
   console.log({ onlineUsers });
 
   useEffect(() => {
-    checkAuth();
+    // Set a timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (isCheckingAuth) {
+        console.warn("Auth check timeout - proceeding without auth");
+        setAuthTimeout(true);
+      }
+    }, 15000); // 15 second timeout
+
+    checkAuth().finally(() => {
+      clearTimeout(timeout);
+    });
+
+    return () => clearTimeout(timeout);
   }, [checkAuth]);
 
   console.log({ authUser });
 
-  if (isCheckingAuth && !authUser)
+  // Show loading only if checking auth and haven't timed out
+  if (isCheckingAuth && !authUser && !authTimeout)
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader className="size-10 animate-spin" />
+      <div className="flex items-center justify-center h-screen bg-base-100">
+        <Loader className="size-10 animate-spin text-primary" />
       </div>
     );
 
