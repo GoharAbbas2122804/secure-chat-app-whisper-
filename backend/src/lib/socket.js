@@ -5,9 +5,30 @@ import express from "express";
 const app = express();
 const server = http.createServer(app);
 
+// Socket.io CORS configuration - allow both localhost and Vercel domains
+const allowedSocketOrigins = [
+  "http://localhost:5173",
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173"],
+    origin: function (origin, callback) {
+      // Allow requests with no origin
+      if (!origin) return callback(null, true);
+      
+      if (allowedSocketOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === "development") {
+        callback(null, true);
+      } else {
+        // In production, allow Vercel domains
+        if (origin.includes("vercel.app") || origin.includes("vercel.com")) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
+      }
+    },
+    credentials: true,
   },
 });
 
